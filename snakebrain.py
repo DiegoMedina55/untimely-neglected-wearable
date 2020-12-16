@@ -137,8 +137,8 @@ def get_future_head_positions(body, turns, board):
 
     return explores[turns]
 
-def should_choose(moves, squad):
-    if squad:
+def should_choose(moves, squad, snake_count):
+    if squad or snake_count > 2:
         return len(moves) >= 2
     else:
         return len(moves) == 2
@@ -299,7 +299,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     collision_threats = []
     collision_targets = {}
 
-    hunger_threshold = 35
+    hunger_threshold = board['width'] + board['height'] + my_snake['length'] / 2 
     enemy_offset = {}
 
     for snake in enemy_snakes:
@@ -446,21 +446,39 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                         eating_snakes.append(best_approach)
                 
     # reverse course in one special case
-    if len(smart_moves) == 1 and collision_threats:
-        for enemy_snake in [snake for snake in other_snakes if snake['id'] in collision_threats]:
-            enemy_possible_positions = get_future_head_positions(enemy_snake['body'], 1, board)
-            my_possible_positions = get_future_head_positions(my_snake['body'], 1, board)
-            my_best = [coord for coord in my_possible_positions if coord not in enemy_possible_positions]
-            shared = [coord for coord in my_possible_positions if coord in enemy_possible_positions]
-            exclusion_zone = [move for move in get_safe_moves(all_moves, my_snake['body'], board) if move != get_reverse(smart_moves[0])]
-            available_space = retrace_path(get_excluded_path(safe_coords[smart_moves[0]], exclusion_zone, enemy_snake['head']), get_next(my_snake['head'], smart_moves[0]))
-            print(f"safe space: {len(safe_coords[smart_moves[0]])} available_space: {len(available_space)} exclusion zone: {exclusion_zone}")
-            if len(shared) > 1 and len(my_best) == 1 and len(available_space) < my_snake['length'] and my_snake['body'][-1] not in available_space and my_best[0] == get_next(my_snake['head'], smart_moves[0]):
-                print("run away!!")
-                flee = get_reverse(smart_moves[0])
-                if flee in safe_coords.keys() and (len(safe_coords[flee]) >= my_snake['length'] or any(snake['body'][:-1] in safe_coords[flee] for snake in board['snakes'])):
-                    print(f'going {flee}!')
-                    smart_moves = [flee]
+    # Consider ways to run away
+    if collision_threats:
+        danger_snakes = [snake for snake in other_snakes if snake['id'] in collision_threats]
+        if len(smart_moves) > 1:
+            flee_choice = []
+            for enemy_snake in danger_snakes:
+                flee_choices = get_moves_toward(enemy_snake['head'], my_snake['head'])
+                distance = get_minimum_moves(enemy_snake['head'], [my_snake['head']])
+                if distance == 2 and len(flee_choices) == 2:
+                    print(f'{enemy_snake["name"]} close, I need to go {flee_choices}')
+                    for move in flee_choices:
+                        exclusion_zone = [move for move in get_safe_moves(all_moves, my_snake['body'], board) if move != get_reverse(move)]
+                        available_space = retrace_path(get_excluded_path(safe_coords[move], exclusion_zone, enemy_snake['head']), get_next(my_snake['head'], move))
+                        if len(available_space) >= my_snake['length']:
+                            print(f'going {move}')
+                            flee_choice.append(move)
+            if flee_choice:
+                smart_moves = flee_choice
+        elif len(smart_moves) == 1:
+            for enemy_snake in danger_snakes:
+                enemy_possible_positions = get_future_head_positions(enemy_snake['body'], 1, board)
+                my_possible_positions = get_future_head_positions(my_snake['body'], 1, board)
+                my_best = [coord for coord in my_possible_positions if coord not in enemy_possible_positions]
+                shared = [coord for coord in my_possible_positions if coord in enemy_possible_positions]
+                exclusion_zone = [move for move in get_safe_moves(all_moves, my_snake['body'], board) if move != get_reverse(smart_moves[0])]
+                available_space = retrace_path(get_excluded_path(safe_coords[smart_moves[0]], exclusion_zone, enemy_snake['head']), get_next(my_snake['head'], smart_moves[0]))
+                print(f"safe space: {len(safe_coords[smart_moves[0]])} available_space: {len(available_space)} exclusion zone: {exclusion_zone}")
+                if len(shared) > 1 and len(my_best) == 1 and len(available_space) < my_snake['length'] and my_snake['body'][-1] not in available_space and my_best[0] == get_next(my_snake['head'], smart_moves[0]):
+                    print("run away!!")
+                    flee = get_reverse(smart_moves[0])
+                    if flee in safe_coords.keys() and (len(safe_coords[flee]) >= my_snake['length'] or any(snake['body'][:-1] in safe_coords[flee] for snake in board['snakes'])):
+                        print(f'going {flee}!')
+                        smart_moves = [flee]
 
 
 
@@ -575,8 +593,12 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                         test_coord = get_next(my_snake["head"], path)
                         distance_to_me = get_minimum_moves(food, [test_coord])
                         if distance_to_me == food_moves[path]:
-                            for snake in food_considerations:
-                                if get_minimum_moves(food, [snake["head"]]) <= distance_to_me + 1 and get_minimum_moves(snake["head"], [test_coord]) < minimum_moves_threshold and snake["length"] > my_snake["length"]:
+                            for snake in food_considerations:                            
+                                print(f'considering {snake["name"]} {distance_to_me}')
+                                if food in get_all_moves(snake['head']) and distance_to_me > 1 and snake['length'] >= my_snake['length']:
+                                    print(f'Avoiding food that {snake["name"]} is touching')
+                                    avoid_moves.append(path)
+                                elif get_minimum_moves(food, [snake["head"]]) <= distance_to_me + 1 and get_minimum_moves(snake["head"], [test_coord]) < minimum_moves_threshold and snake["length"] > my_snake["length"]:
                                     # Don't
                                     print(f'Avoiding food towards {path} because {snake["name"]} is {get_minimum_moves(snake["head"], [test_coord])} away')
                                     avoid_moves.append(path)
@@ -614,7 +636,9 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                 if food_intersect:
                     smart_moves = food_intersect
                 elif avoid_moves:
-                    smart_moves = [move for move in smart_moves if move not in avoid_moves]
+                    avoid_test = [move for move in smart_moves if move not in avoid_moves]
+                    if avoid_test:
+                        smart_moves = avoid_test
                 elif min(food_moves.values()) * 16 < my_snake["health"]: #and if path in hazard
                     # we're gonna make it, chief
                     hazard_pay = [move for move in closest_food if get_next(body[0], move) in board['hazards']]
@@ -627,30 +651,17 @@ def get_smart_moves(possible_moves, body, board, my_snake):
             food_avoid = [move for move in smart_moves if get_next(body[0], move) not in board["food"]]
             print(f'Not hungry, avoiding food! moves are {food_avoid}')
 
-    if board["hazards"] and my_snake["head"] in board["hazards"]:
-        # Choose the path that takes us out of hazard
-        if not smart_moves:
-            print(f'no moves, using {safe_coords.keys()}')
-            smart_moves = list(safe_coords.keys())
-        if smart_moves and len(smart_moves) > 1:
-            shortest_path = min([steps_to_safety(move, my_snake["head"], board) for move in smart_moves])
-            smart_moves = [move for move in smart_moves if steps_to_safety(move, my_snake["head"], board) == shortest_path]
-            print(f'smartly going {shortest_path} {smart_moves} steps to escape hazards')
-    elif eating_snakes:
-        smart_moves = eating_snakes
-    elif food_avoid:
-        smart_moves = food_avoid
-
     # tiebreakers when there are two paths, three in squads.  Skip if begin of game and we're short
     # TODO: add alternate branch if we're beside food and that food would make us larger than nearest threat
-    if not eating_snakes and len(board['snakes']) > 1 and should_choose(smart_moves, my_snake.get("squad")) and my_snake['length'] > 3:
+    # TODO: Refactor this into a better branch similar to the attack code above
+    if not eating_snakes and len(board['snakes']) > 1 and should_choose(smart_moves, my_snake.get("squad"), len(board['snakes'])) and my_snake['length'] > 3:
         body_weight = {}
         for move in smart_moves:
             next_coord = get_next(body[0], move)
             head_distance[move] = get_closest_enemy_head_distance(next_coord, [snake for snake in enemy_snakes if snake['length'] >= my_snake['length']])
             body_weight[move] = get_body_segment_count(next_coord, move, board['snakes'])
 
-        if min(head_distance.values()) <= 3:
+        if min(head_distance.values()) <= 5:
             if at_wall(my_snake["head"], board) and not at_wall(my_snake["body"][1], board):
                 if board["hazards"]:
                     hazard_avoid = [move for move in smart_moves if not any(coord in board["hazards"] for coord in safe_coords[move])]
@@ -683,6 +694,19 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                         smart_moves = [move for move in smart_moves if body_weight[move] == min(body_weight.values())]
                         print(f'choosing {smart_moves} to avoid bodies {body_weight}')
 
+    if board["hazards"] and my_snake["head"] in board["hazards"]:
+        # Choose the path that takes us out of hazard
+        if not smart_moves:
+            print(f'no moves, using {safe_coords.keys()}')
+            smart_moves = list(safe_coords.keys())
+        if smart_moves and len(smart_moves) > 1:
+            shortest_path = min([steps_to_safety(move, my_snake["head"], board) for move in smart_moves])
+            smart_moves = [move for move in smart_moves if steps_to_safety(move, my_snake["head"], board) == shortest_path]
+            print(f'smartly going {shortest_path} {smart_moves} steps to escape hazards')
+    elif eating_snakes:
+        smart_moves = eating_snakes
+    elif food_avoid:
+        smart_moves = food_avoid
 
     return smart_moves
 
