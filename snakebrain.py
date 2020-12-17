@@ -138,7 +138,9 @@ def get_future_head_positions(body, turns, board):
     return explores[turns]
 
 def should_choose(moves, squad, snake_count):
-    if squad or snake_count > 2:
+    if snake_count <= 1:
+        return False
+    elif squad or snake_count > 2:
         return len(moves) >= 2
     else:
         return len(moves) == 2
@@ -394,6 +396,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     # space for future moves
     for snake in other_snakes:
         enemy_options = get_safe_moves(all_moves, snake['body'], board)
+        enemy_all = get_all_moves(snake['head'])
         if len(enemy_options) == 1:
             enemy_must = get_next(snake['body'][0], enemy_options[0])
             if snake['length'] < my_snake['length'] and enemy_must in next_coords.values():
@@ -401,7 +404,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                     if coord == enemy_must:
                         print(f'Eating {snake["name"]} by going {move} to {coord}')
                         eating_snakes.append(move)
-            elif avoid_gutter(enemy_must, board['width'], board['height']):
+            elif avoid_gutter(enemy_must, board['width'], board['height']) and any(match in enemy_all for match in my_snake['body']):
                 gutter_snakes.append(snake)
         elif len(enemy_options) == 2:
             # TODO: consider if this will corner us - do what-if when enemy chooses to avoid us
@@ -651,10 +654,10 @@ def get_smart_moves(possible_moves, body, board, my_snake):
             food_avoid = [move for move in smart_moves if get_next(body[0], move) not in board["food"]]
             print(f'Not hungry, avoiding food! moves are {food_avoid}')
 
-    # tiebreakers when there are two paths, three in squads.  Skip if begin of game and we're short
+    # tiebreakers when there are multiple paths.  should_choose function determines when to do thisi based on board state.  Skip if begin of game and we're short
     # TODO: add alternate branch if we're beside food and that food would make us larger than nearest threat
     # TODO: Refactor this into a better branch similar to the attack code above
-    if not eating_snakes and len(board['snakes']) > 1 and should_choose(smart_moves, my_snake.get("squad"), len(board['snakes'])) and my_snake['length'] > 3:
+    if not eating_snakes and should_choose(smart_moves, my_snake.get("squad"), len(board['snakes'])) and my_snake['length'] > 3:
         body_weight = {}
         for move in smart_moves:
             next_coord = get_next(body[0], move)
