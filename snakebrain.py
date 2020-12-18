@@ -458,9 +458,9 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         if len(smart_moves) > 1:
             flee_choice = []
             for enemy_snake in danger_snakes:
-                flee_choices = get_moves_toward(enemy_snake['head'], my_snake['head'])
+                flee_choices = [move for move in get_moves_toward(enemy_snake['head'], my_snake['head']) if move in safe_coords.keys()]
                 distance = get_minimum_moves(enemy_snake['head'], [my_snake['head']])
-                if distance == 2 and len(flee_choices) == 2:
+                if distance <= 4 and flee_choices:
                     print(f'{enemy_snake["name"]} close, I need to go {flee_choices}')
                     for move in flee_choices:
                         exclusion_zone = [move for move in get_safe_moves(all_moves, my_snake['body'], board) if move != get_reverse(move)]
@@ -526,8 +526,10 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                         smart_moves.append(move)
 
     # Early hunger check to determine if the closest food is in a dangerous place
-    if board['food'] and (my_snake["health"] < hunger_threshold or any(snake["length"] >= my_snake["length"] for snake in enemy_snakes)):
+    if board['food'] and (my_snake["health"] < hunger_threshold or any(snake["length"] + len(board['food']) >= my_snake["length"] for snake in enemy_snakes)):
         gutter_food = [food for food in board['food'] if not avoid_gutter(food, board['width'], board['height']) and get_minimum_moves(my_snake['head'], [food]) < 2]
+        if not avoid_gutter(my_snake['head'], board['width'], board['height']):
+            gutter_food += [food for food in board['food'] if (food['x'] == my_snake['head']['x'] or food['y'] == my_snake['head']['y']) and get_moves_toward(my_snake['head'], food)[0] in  safe_coords.keys()]
 
     # Avoid the gutter when we're longer than the board width
     print(f"gutter_food {gutter_food} gutter_snakes {gutter_snakes}")
