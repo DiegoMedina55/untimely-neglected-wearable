@@ -300,6 +300,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     squeeze_offset = {}
     collision_threats = []
     collision_targets = {}
+    dead_ends = {}
 
     hunger_threshold = board['width'] + board['height'] + my_snake['length'] / 2 
     enemy_offset = {}
@@ -329,6 +330,8 @@ def get_smart_moves(possible_moves, body, board, my_snake):
             explore_step += 1
             if len(explore_edge) == 1 and explore_step > 1:
                 squeeze_offset[guess] += 1
+            if len(explore_edge) == 0 and guess not in dead_ends:
+                dead_ends[guess] = explore_step
             print(f"Step {explore_step} exploring {explore_edge}")
             for explore in explore_edge:
                 if explore in board['food']:
@@ -384,7 +387,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         #print(f"{safe_coords[path]}")
         # TODO: if this gives us one run-away move, consider the opposite, unpredictable move
         if ((len(safe_coords[path]) >= len(body) or 
-                any(snake["body"][-1] in safe_coords[path] for snake in board["snakes"])) and 
+                any(snake["body"][-1] in safe_coords[path] for snake in [snake for snake in board["snakes"] if snake['id'] not in enemy_offset.keys()])) and 
                 avoid_consumption(guess_coord, board["snakes"], my_snake) and
                 avoid_hazards(guess_coord, board["hazards"])
             ):
@@ -527,6 +530,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         gutter_food = [food for food in board['food'] if not avoid_gutter(food, board['width'], board['height']) and get_minimum_moves(my_snake['head'], [food]) < 2]
 
     # Avoid the gutter when we're longer than the board width
+    print(f"gutter_food {gutter_food} gutter_snakes {gutter_snakes}")
     if smart_moves and not gutter_snakes and not gutter_food and my_snake["length"] >= board["width"] - 2:
         gutter_avoid = [move for move in smart_moves if avoid_gutter(get_next(body[0], move), board["width"], board["height"])]
         if gutter_avoid:
@@ -550,10 +554,17 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                         smart_moves.append(move)
         if not smart_moves:
             # TODO: find the longest contiguous path in the safe zones to decide which way to squeeze
-            squeeze_move = max(safe_coords, key= lambda x: len(safe_coords[x]))
-            if len(safe_coords[squeeze_move]) > 2 and avoid_consumption(get_next(body[0], squeeze_move), board["snakes"], my_snake):
-                print(f'squeezing into {squeeze_move} {safe_coords}')
-                smart_moves.append(squeeze_move)
+            max_squeeze = max(map(len, safe_coords.values()))
+            squeeze_moves = [move for move in safe_coords.keys() if len(safe_coords[move]) == max_squeeze]
+            max_deadend = -1
+            #safe_coords, key= lambda x: len(safe_coords[x]))a
+            if len(squeeze_moves) > 1:
+                max_deadend = max(dead_ends.values())
+                squeeze_moves = [move for move in dead_ends.keys() if dead_ends[move] == max_deadend and move in squeeze_moves]
+            for squeeze_move in squeeze_moves:
+                if len(safe_coords[squeeze_move]) > 2 and avoid_consumption(get_next(body[0], squeeze_move), board["snakes"], my_snake):
+                    print(f'squeezing into {squeeze_move}, {max_squeeze} cells in {max_deadend} steps')
+                    smart_moves.append(squeeze_move)
 
 
 
