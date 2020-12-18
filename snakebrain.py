@@ -443,11 +443,11 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                 available_space = retrace_path(get_excluded_path(safe_coords[best_approach], steps_towards_enemy, snake['head']), get_next(my_snake['head'], best_approach))
                 
                 if best_approach in smart_moves:
-                    if min_turns > 1 or (len(available_space) < my_snake['length'] and my_snake['body'][-1] not in available_space):
+                    if len(available_space) < my_snake['length'] and my_snake['body'][-1] not in available_space:
                         print(f'avoiding collision with {snake["name"]}')
                         print(f'{available_space}')
                         choke_moves[best_approach] = min_turns
-                    elif best_approach not in choke_moves.keys():
+                    elif min_turns == 1 and best_approach not in choke_moves.keys():
                         print(f'attacking {snake["name"]} by going {best_approach}, next turn to collide.  fleeing means I squeeze into {len(available_space)} cells')
                         eating_snakes.append(best_approach)
                 
