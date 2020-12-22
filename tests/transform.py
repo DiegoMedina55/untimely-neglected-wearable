@@ -10,7 +10,7 @@ def transform(boardstate):
     move = {}
     board = {}
     boardsize = 11
-    snake_names = ['Untimely Neglected Wearable', 'Untimely Neglected Embedded Device', 'Snakeberry Pi']
+    snake_names = ['Untimely Neglected Wearable', 'Untimely Neglected Embedded Device', 'Snakeberry Pi', 'Hot Soup']
 
     # TODO: make this an argument
     if len(boardstate["Hazards"]) > 0:
