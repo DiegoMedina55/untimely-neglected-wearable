@@ -373,8 +373,10 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                                 if coord in snake["body"]:
                                     if snake["body"].index(coord) + explore_step >= len(snake["body"]) + enemy_offset[snake['id']]:
                                         start_segment = snake["body"].index(coord)
-                                        # print(f'we intersect with {snake["name"]} at position {start_segment} step {explore_step}')
-                                        all_coords += snake["body"][start_segment:]
+                                        #print(f'we intersect with {snake["name"]} at position {start_segment} step {explore_step}')
+                                        #all_coords += snake["body"][start_segment:]
+                                        if coord not in all_coords:
+                                            next_explore.append(coord)
                                     elif coord == snake['head']: # and snake['length'] >= my_snake['length']:
                                         # print(f"Bumping heads with {snake['name']} at step {explore_step} {explore_edge}")
                                         if snake['length'] >= my_snake['length']:
@@ -385,7 +387,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                                             collision_targets[snake['id']] = explore_step
 
                                         unexplored = [coord for coord in explore_edge if coord not in all_coords]
-                                        print(f"safe: {safe} {next_explore}")
+                                        # print(f"safe: {safe} {next_explore}")
                                         if explore_step > 2 and (len(explore_edge) == 1 or len(next_explore) <= 1) and guess not in choke_moves.keys():
                                             print(f"{guess} leads to a possible choke point")
                                             choke_moves[guess] = explore_step
@@ -459,7 +461,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                 all_attack_moves = [x for x in collisions.keys() if len(collisions[x]) == most_hits]
                 if len(all_attack_moves) > 1:
                     enemy_options = get_safe_moves(all_moves, snake['body'], board)
-                    print(f"we go {all_attack_moves} they go {enemy_options}")
+                    print(f"we go {all_attack_moves} they go {enemy_options} smart_moves {smart_moves}")
                     no_run = [move for move in all_attack_moves if move not in enemy_options]
                     if len(no_run) == 1:
                         best_approach = no_run[0]
@@ -577,7 +579,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
             gutter_food += [food for food in board['food'] if (food['x'] == my_snake['head']['x'] or food['y'] == my_snake['head']['y']) and get_moves_toward(my_snake['head'], food)[0] in  safe_coords.keys()]
 
     # Avoid the gutter when we're longer than the board width
-    print(f"gutter_food {gutter_food} gutter_snakes {gutter_snakes}")
+    #print(f"gutter_food {gutter_food} gutter_snakes {gutter_snakes}")
     if smart_moves and not gutter_snakes and not gutter_food and my_snake["length"] >= board["width"] - 2 and my_snake["length"] <= 2 * board["width"] + 2:
         gutter_avoid = [move for move in smart_moves if not at_wall(get_next(body[0], move), board)]
         if gutter_avoid:
@@ -640,7 +642,8 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                     target_keys = [hash_coord(food) for food in food_targets if food in safe_coords[path]]
                     target_keys = [key for key in target_keys if key in food_step[path].keys()]
                     target_steps = [food_step[path][key] for key in target_keys]
-                    food_moves[path] = min(target_steps)
+                    if target_steps:
+                        food_moves[path] = min(target_steps)
 
         if food_moves:
             closest_food_distance = min(food_moves.values())
