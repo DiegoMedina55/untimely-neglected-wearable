@@ -9,7 +9,7 @@ import snakebrain
 from tests.transform import transform_json
 
 import cherrypy
-#import cProfile
+import cProfile
 
 """
 This is a simple Battlesnake server written in Python.
