@@ -282,6 +282,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     # the main function of the snake - choose the best move based on the information available
     smart_moves = []
     food_avoid = []
+    avoid_moves = []
     enemy_snakes = []
     squadmates = []
     all_moves = ["up", "down", "left", "right"]
@@ -486,11 +487,14 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     # Consider ways to run away
     if collision_threats:
         danger_snakes = [snake for snake in other_snakes if snake['id'] in collision_threats]
+        print(f'Danger! {[snake["name"] for snake in danger_snakes]}')
         if len(smart_moves) > 1:
             flee_choice = {}
             for enemy_snake in danger_snakes:
 
                 flee_choices = [move for move in get_moves_toward(enemy_snake['head'], my_snake['head']) if move in safe_coords.keys()]
+                if not flee_choices and safe_coords:
+                    flee_choices = [move for move in safe_coords.keys() if move not in get_moves_toward(my_snake['head'], enemy_snake['head'])]
                 print(f'First pass {flee_choices}')
                 if len(flee_choices) == 1 and len(get_moves_toward(enemy_snake['head'], my_snake['head'])) == 1:
                     flee_choices = [move for move in safe_coords.keys() if move not in get_moves_toward(my_snake['head'], enemy_snake['head'])]
@@ -520,7 +524,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                             print(f'going {move}')
                             flee_choice[move] = distance
             if flee_choice:
-                print(f"{flee_choice}")
+                print(f"eek: {flee_choice}")
                 smart_moves = [move for move in flee_choice.keys() if flee_choice[move] == min(flee_choice.values())]
         elif len(smart_moves) == 1:
             for enemy_snake in danger_snakes:
@@ -628,12 +632,11 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         food_moves = {}
         closest_food = []
         greed_moves = []
-        avoid_moves = []
         food_targets = [food for food in board["food"] if food not in board["hazards"]]
         print(f'food is {food_targets}')
-        if not food_targets:
+        if not food_targets or my_snake['head'] in board['hazards']:
             food_targets = board["food"]
-            print (f'no food outside hazards, now considering {food_targets}')
+            print (f'no food outside hazards or we are in the sauce, now considering {food_targets}')
 
         if my_snake['health'] < hunger_threshold or my_snake["length"] < board['width']:
             food_choices = safe_coords.keys()
