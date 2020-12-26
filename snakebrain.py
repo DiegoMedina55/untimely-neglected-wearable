@@ -514,7 +514,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                 if distance <= 4 and flee_choices and distance <= food_min:
                     print(f'{enemy_snake["name"]} is {distance} away, food is {food_min}, I need to go {flee_choices}')
                     for move in flee_choices:
-                        exclusion_zone = [move for move in get_safe_moves(all_moves, my_snake['body'], board) if move != get_reverse(move)]
+                        exclusion_zone = [exclude for exclude in get_safe_moves(all_moves, my_snake['body'], board) if exclude != get_reverse(move)]
                         available_space = retrace_path(get_excluded_path(safe_coords[move], exclusion_zone, enemy_snake['head']), get_next(my_snake['head'], move))
                         if len(available_space) >= my_snake['length']:
                             print(f'going {move}')
