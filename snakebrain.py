@@ -823,7 +823,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
             if test_moves:
                 smart_moves = test_moves
         else:
-            chase_tail = get_moves_toward(my_snake['head'], my_snake['body'][-1])
+            chase_tail = get_moves_toward(my_snake['body'][2], my_snake['body'][-1])
             test_moves = [move for move in smart_moves if move in chase_tail]
             if test_moves:
                 smart_moves = test_moves
