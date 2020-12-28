@@ -436,7 +436,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                         print(f'Eating {snake["name"]} by going {move} to {coord}')
                         eating_snakes.append(move)
             elif at_wall(enemy_must, board) and any(match in enemy_all for match in my_snake['body']):
-                # print(f'{snake["name"]} is in gutter and we squeeze it')
+                #print(f'{snake["name"]} is in gutter and we squeeze it')
                 gutter_snakes.append(snake)
         elif len(enemy_options) == 2:
             # TODO: consider if this will corner us - do what-if when enemy chooses to avoid us
@@ -462,14 +462,19 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                     collisions[move] = [coord for coord in move_targets if coord in enemy_possible_positions]
                 print(f'collisions: {collisions}')
                 best_approach = max(collisions, key= lambda x: len(collisions[x]))
+                print(f'best_appoach: {best_approach}')
                 most_hits = max(len(collisions[x]) for x in collisions.keys())
                 all_attack_moves = [x for x in collisions.keys() if len(collisions[x]) == most_hits]
                 if len(all_attack_moves) > 1:
                     enemy_options = get_safe_moves(all_moves, snake['body'], board)
-                    # print(f"we go {all_attack_moves} they go {enemy_options} smart_moves {smart_moves}")
-                    no_run = [move for move in all_attack_moves if move not in enemy_options]
-                    if len(no_run) == 1:
-                        best_approach = no_run[0]
+                    print(f"we go {all_attack_moves} they go {enemy_options} smart_moves {smart_moves}")
+                    no_pinch = [move for move in all_attack_moves if snake['body'][2] not in get_all_moves(get_next(my_snake['head'], move))]
+                    if len(no_pinch) == 1:
+                        best_approach = no_pinch[0]
+                    else:
+                        no_run = [move for move in all_attack_moves if move not in enemy_options]
+                        if len(no_run) == 1:
+                            best_approach = no_run[0]
                 exclusion_origin = snake['head']
 
                 available_space = retrace_path(get_excluded_path(safe_coords[best_approach], steps_towards_enemy, exclusion_origin), get_next(my_snake['head'], best_approach), board['snakes'])
@@ -593,6 +598,11 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         if gutter_avoid:
             print(f"Avoiding gutter by going {gutter_avoid} instead of {smart_moves}")
             smart_moves = gutter_avoid
+    elif gutter_snakes and len(enemy_snakes) == 1: 
+        # special case to win a duel
+        gutter_cutoff = [move for move in smart_moves if at_wall(get_next(body[0], move), board)]
+        if gutter_cutoff:
+            eating_snakes = gutter_cutoff
         
     # No clear path, try to fit ourselves in the longest one
     if safe_coords and not smart_moves and my_snake['head'] not in board ['hazards']:
