@@ -525,7 +525,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                     for move in flee_choices:
                         exclusion_zone = [exclude for exclude in get_safe_moves(all_moves, my_snake['body'], board) if exclude != get_reverse(move)]
                         available_space = retrace_path(get_excluded_path(safe_coords[move], exclusion_zone, enemy_snake['head']), get_next(my_snake['head'], move))
-                        if len(available_space) >= my_snake['length']:
+                        if len(available_space) >= my_snake['length'] or my_snake['body'][-1] in available_space:
                             print(f'going {move}')
                             flee_choice[move] = distance
             if flee_choice:
