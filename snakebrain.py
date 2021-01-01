@@ -325,7 +325,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         enemy_offset[snake['id']] += len(snake['body']) - len(list(map(dict, frozenset(frozenset(i.items()) for i in snake['body']))))
 
 
-    # We know these directions are safe... for now
+    # explore each possible n times where n is our length
     for guess in safe_moves:
         safe_coords[guess] = []
         guess_coord = get_next(body[0], guess)
@@ -379,7 +379,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                                         if coord not in all_coords:
                                             next_explore.append(coord)
                                     elif coord == snake['head']: # and snake['length'] >= my_snake['length']:
-                                        # print(f"Bumping heads with {snake['name']} at step {explore_step} {explore_edge}")
+                                        print(f"Bumping heads with {snake['name']} at step {explore_step} {explore_edge}")
                                         if snake['length'] >= my_snake['length']:
                                             collision_threats.append(snake['id'])
                                         elif snake['id'] not in collision_targets:
@@ -515,13 +515,14 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                     escape_space = retrace_path(get_excluded_path(safe_coords[flee_choices[0]], flee_choices, my_snake['head']), my_snake['head'])
                     print(f'eek! {escape_space}')
 
+                # I put this in so I could eat food and then eat the enemy snake but sometimes it doesn't work.
                 if enemy_snake['length'] == my_snake['length'] or len(escape_space) >= my_snake['length']:
                     all_food = [min(array) for array in [x.values() for x in food_step.values() if x.values()]]
                     if all_food:
                         food_min = min(all_food)
                 
+                print(f'{enemy_snake["name"]} is {distance} away, food is {food_min}, I need to go {flee_choices}')
                 if distance <= 4 and flee_choices and distance <= food_min:
-                    print(f'{enemy_snake["name"]} is {distance} away, food is {food_min}, I need to go {flee_choices}')
                     for move in flee_choices:
                         exclusion_zone = [exclude for exclude in get_safe_moves(all_moves, my_snake['body'], board) if exclude != get_reverse(move)]
                         available_space = retrace_path(get_excluded_path(safe_coords[move], exclusion_zone, enemy_snake['head']), get_next(my_snake['head'], move))
@@ -546,6 +547,13 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                     if flee in safe_coords.keys() and (len(safe_coords[flee]) >= my_snake['length'] or any(snake['body'][-1] in safe_coords[flee] for snake in board['snakes'])):
                         print(f'going {flee}!')
                         smart_moves = [flee]
+        else:
+            #We're in danger and there are no smart moves, consider one special case I have observed
+            if len(danger_snakes) == 1:
+                enemy_snake = danger_snakes[0]
+                if at_wall(my_snake['head'], board) and not at_wall(enemy_snake['head'], board) and get_minimum_moves(my_snake['head'], [enemy_snake['head']]) <= 4:
+                    smart_moves = [move for move in safe_coords.keys() if at_wall(get_next(my_snake['head'], move), board)]
+                    print(f'Going {smart_moves} to slip past danger')
 
 
 
@@ -724,14 +732,14 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                     smart_moves = closest_food
             else:
                 food_intersect = [move for move in smart_moves if move in closest_food and move not in avoid_moves] 
-                print(f'Smart food is {food_intersect}')
+                print(f'Smart food is {food_intersect} food_moves {food_moves}')
                 if food_intersect:
                     smart_moves = food_intersect
                 elif avoid_moves:
                     avoid_test = [move for move in smart_moves if move not in avoid_moves]
                     if avoid_test:
                         smart_moves = avoid_test
-                elif min(food_moves.values()) * 16 < my_snake["health"]: #and if path in hazard
+                elif min(food_moves.values()) * 16 < my_snake["health"] and collision_threats: #and if path in hazard
                     # we're gonna make it, chief
                     hazard_pay = [move for move in closest_food if get_next(body[0], move) in board['hazards']]
                     if hazard_pay:
@@ -817,16 +825,20 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         smart_moves = food_avoid
 
     if len(smart_moves) > 1:
+        from_coord = my_snake['head']
+        to_coord = my_snake['body'][-1]
+
         if tron_mode:
-            center_target = get_moves_toward(my_snake['head'], {'x':(board['width']-1)/2, 'y':(board['height']-1)/2})
-            test_moves = [move for move in smart_moves if move in center_target]
-            if test_moves:
-                smart_moves = test_moves
+            to_coord = {'x':(board['width']-1)/2, 'y':(board['height']-1)/2}
+        elif len(enemy_snakes) == 1:
+            to_coord = enemy_snakes[0]['head']
         else:
-            chase_tail = get_moves_toward(my_snake['body'][2], my_snake['body'][-1])
-            test_moves = [move for move in smart_moves if move in chase_tail]
-            if test_moves:
-                smart_moves = test_moves
+            from_coord = my_snake['body'][2]
+
+        idle_target = get_moves_toward(from_coord, to_coord)
+        test_moves = [move for move in smart_moves if move in idle_target]
+        if test_moves:
+            smart_moves = test_moves
 
     return smart_moves
 
