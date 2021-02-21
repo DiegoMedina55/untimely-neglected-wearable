@@ -332,6 +332,9 @@ def get_smart_moves(possible_moves, body, board, my_snake):
             enemy_offset[snake['id']] = 0
         # This messy thing adds 1 for every stacked segment
         enemy_offset[snake['id']] += len(snake['body']) - len(list(map(dict, frozenset(frozenset(i.items()) for i in snake['body']))))
+        # assume enemy snakes that are longer continue to eat
+        if snake['length'] > my_snake['length']:
+            enemy_offset[snake['id']] += 2
 
 
     # explore each possible n times where n is our length
