@@ -3,6 +3,9 @@ import json
 def to_new_api(old, dimension):
     return {"x":old["X"], "y": (dimension - 1) - old["Y"]}
 
+def to_lowercase(old):
+    return {"x":old["X"], "y":old["Y"]}
+
 def transform_json(json_text):
     transform(json.loads(json_text))
 
@@ -29,7 +32,7 @@ def transform(boardstate):
         new_snake["id"] = Snake["ID"]
         new_snake["name"] = Snake["Name"]
         new_snake["health"] = Snake["Health"]
-        new_snake["body"] = [to_new_api(segment, boardsize) for segment in Snake["Body"]]
+        new_snake["body"] = [to_lowercase(segment) for segment in Snake["Body"]]
         new_snake["shout"] = Snake["Shout"]
         new_snake["squad"] = Snake["Squad"]
 
@@ -41,8 +44,8 @@ def transform(boardstate):
     
         board["snakes"].append(new_snake)
 
-    board["food"] = [to_new_api(chonk, boardsize) for chonk in boardstate["Food"]]
-    board["hazards"] = [to_new_api(yikes, boardsize) for yikes in boardstate["Hazards"]]
+    board["food"] = [to_lowercase(chonk) for chonk in boardstate["Food"]]
+    board["hazards"] = [to_lowercase(yikes) for yikes in boardstate["Hazards"]]
 
     move["board"] = board
 
