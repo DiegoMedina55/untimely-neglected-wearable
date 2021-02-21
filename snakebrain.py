@@ -499,6 +499,13 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                         print(f'attacking {snake["name"]} by going {best_approach}, next turn to collide.  fleeing means I squeeze into {len(available_space)} cells')
                         eating_snakes.append(best_approach)
                 
+    if gutter_snakes and len(enemy_snakes) == 1: 
+        # special case to win a duel
+        gutter_cutoff = [move for move in smart_moves if at_wall(get_next(body[0], move), board)]
+        print(f"gutter_cutoff: {gutter_cutoff}")
+        if gutter_cutoff:
+            eating_snakes = gutter_cutoff
+
     # reverse course in one special case
     # Consider ways to run away
     if collision_threats:
@@ -617,11 +624,6 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         if gutter_avoid:
             print(f"Avoiding gutter by going {gutter_avoid} instead of {smart_moves}")
             smart_moves = gutter_avoid
-    elif gutter_snakes and len(enemy_snakes) == 1: 
-        # special case to win a duel
-        gutter_cutoff = [move for move in smart_moves if at_wall(get_next(body[0], move), board)]
-        if gutter_cutoff:
-            eating_snakes = gutter_cutoff
         
     # No clear path, try to fit ourselves in the longest one
     if safe_coords and not smart_moves and my_snake['head'] not in board ['hazards']:
