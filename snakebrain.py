@@ -127,6 +127,18 @@ def get_future_head_positions(body, turns, board):
 
     return explores[turns]
 
+def get_bypass(origin, target):
+    bypass_options = []
+    options = get_moves_toward(origin, target)
+    x_diff = abs(target['x'] - origin['x'])
+    y_diff = abs(target['y'] - origin['y'])
+    if x_diff > y_diff:
+        bypass_options = ['up', 'down']
+    elif x_diff < y_diff:
+        bypass_options = ['left', 'right']
+    
+    return [move for move in bypass_options if move in options]
+
 def should_choose(moves, squad, snake_count):
     if snake_count <= 1:
         return False
@@ -510,17 +522,26 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     # Consider ways to run away
     if collision_threats:
         danger_snakes = [snake for snake in other_snakes if snake['id'] in collision_threats]
-        print(f'Danger! {[snake["name"] for snake in danger_snakes]}')
+        print(f'Danger! {[snake["name"] for snake in danger_snakes]}, I like {smart_moves}')
         if len(smart_moves) > 1:
             flee_choice = {}
             for enemy_snake in danger_snakes:
 
+                # First try to run away
                 flee_choices = [move for move in get_moves_toward(enemy_snake['head'], my_snake['head']) if move in safe_coords.keys()]
+                # if we can't run away then can we avoid going towards the enemy
                 if not flee_choices and safe_coords:
                     flee_choices = [move for move in safe_coords.keys() if move not in get_moves_toward(my_snake['head'], enemy_snake['head'])]
                 print(f'First pass {flee_choices}')
-                if len(flee_choices) == 1 and len(get_moves_toward(enemy_snake['head'], my_snake['head'])) == 1:
-                    flee_choices = [move for move in safe_coords.keys() if move not in get_moves_toward(my_snake['head'], enemy_snake['head'])]
+                # TODO: determine if we need to flee now or later
+                if len(flee_choices) == 1:
+                    if len(get_moves_toward(enemy_snake['head'], my_snake['head'])) == 1:
+                        flee_choices = [move for move in safe_coords.keys() if move not in get_moves_toward(my_snake['head'], enemy_snake['head'])]
+                    else:
+                        # diagonal, if one dimension is less we can add that to a flee option
+                        flee_choices += [move for move in get_bypass(my_snake['head'], enemy_snake['head']) if move in safe_coords.keys()]
+                        print(f'diagonal means we now could go {flee_choices}')
+
                 distance = get_minimum_moves(enemy_snake['head'], [my_snake['head']])
                 food_min = distance
                 escape_space = []
@@ -660,7 +681,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         food_targets = [food for food in board['food'] if food not in board['hazards']]
 
     # Seek food if there are other snakes porentially larger than us, or if health is low
-    if (len(smart_moves) > 1 or my_snake['head'] in board['hazards']) and board['food'] and not eating_snakes and (my_snake["health"] < hunger_threshold or any(snake["length"] + len(food_targets) >= my_snake["length"] for snake in enemy_snakes)):
+    if (len(smart_moves) > 1 or my_snake['head'] in board['hazards']) and board['food'] and not eating_snakes and (my_snake["health"] < hunger_threshold or any(snake["length"] + (len(food_targets) / 2) >= my_snake["length"] for snake in enemy_snakes)):
         print("Hungry!")
         food_choices = smart_moves 
         food_moves = {}
@@ -839,14 +860,20 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     elif food_avoid:
         smart_moves = food_avoid
 
+    # Final arbitration - chase tail normally, move to center in tron mode
     if len(smart_moves) > 1:
         from_coord = my_snake['head']
         to_coord = my_snake['body'][-1]
+        center_coord = {'x':(board['width']-1)/2, 'y':(board['height']-1)/2}
 
         if tron_mode:
-            to_coord = {'x':(board['width']-1)/2, 'y':(board['height']-1)/2}
+            to_coord = center_coord
         elif len(enemy_snakes) == 1:
-            to_coord = enemy_snakes[0]['head']
+            enemy = enemy_snakes[0]
+            if len(enemy['body']) > len(my_snake['body']):
+                to_coord = center_coord
+            else:
+                to_coord = enemy['head']
         else:
             from_coord = my_snake['body'][2]
 
