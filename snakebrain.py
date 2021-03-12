@@ -459,8 +459,8 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                     if coord == enemy_must:
                         print(f'Eating {snake["name"]} by going {move} to {coord}')
                         eating_snakes.append(move)
-            elif at_wall(enemy_must, board) and any(match in enemy_all for match in my_snake['body']):
-                #print(f'{snake["name"]} is in gutter and we squeeze it')
+            if at_wall(enemy_must, board) and any(match in enemy_all for match in my_snake['body']):
+                # print(f'{snake["name"]} is in gutter and we squeeze it')
                 gutter_snakes.append(snake)
         elif len(enemy_options) == 2:
             # TODO: consider if this will corner us - do what-if when enemy chooses to avoid us
