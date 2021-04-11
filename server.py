@@ -101,18 +101,18 @@ class Battlesnake(object):
         return "ok"
 
     @cherrypy.expose
-    def debug(self, boardstate = None):
+    def debug(self, boardstate = None, boardwidth = "11", boardheight = "11"):
         result = ""
         output = ""
 
-        html_begin = '<html><body><form method="POST"><textarea name="boardstate" rows="16" cols="120">'
+        html_begin = f'<html><body><form method="POST">Width:<input type="text" name="boardwidth" value="{boardwidth}"> Height:<input type="text" name="boardheight" value="{boardheight}"><br>Boardstate:<br><textarea name="boardstate" rows="16" cols="120">'
         html_middle = '</textarea><br><input type="submit"> <input type="reset"></form>'
         html_end = '</body></html>'
         if boardstate:
             # get result and stdout
             transform_output = io.StringIO()
             with redirect_stdout(transform_output):
-                transform_json(boardstate)
+                transform_json(boardstate, boardwidth, boardheight)
             move_param = transform_output.getvalue()
             request = cherrypy.serving.request
             request.json = loads(move_param)
@@ -131,6 +131,7 @@ class Battlesnake(object):
 
 if __name__ == "__main__":
     server = Battlesnake()
+    cherrypy.config.update({"server.thread.pool": 10})
     cherrypy.config.update({"server.socket_host": "0.0.0.0"})
     cherrypy.config.update(
         {"server.socket_port": int(os.environ.get("PORT", "8080")),}

@@ -6,24 +6,19 @@ def to_new_api(old, dimension):
 def to_lowercase(old):
     return {"x":old["X"], "y":old["Y"]}
 
-def transform_json(json_text):
-    transform(json.loads(json_text))
+def transform_json(json_text, boardwidth, boardheight):
+    transform(json.loads(json_text), int(boardwidth), int(boardheight))
 
-def transform(boardstate):
+def transform(boardstate, boardwidth = 11, boardheight = 11):
     move = {}
     board = {}
-    boardsize = 11
     snake_names = ['Untimely Neglected Wearable', 'Untimely Neglected Embedded Device', 'Snakeberry Pi', 'Hot Soup']
-
-    # TODO: make this an argument
-    if len(boardstate["Hazards"]) > 0:
-        boardsize = 19
 
     move["game"] = {"id":"transform", "timeout": 500}
     move["turn"] = boardstate["Turn"]
     board["snakes"] = []
-    board["width"] = boardsize
-    board["height"] = boardsize
+    board["width"] = boardwidth
+    board["height"] = boardheight
 
     for Snake in boardstate["Snakes"]:
         new_snake = {}

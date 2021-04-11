@@ -1,3 +1,5 @@
+import time
+
 MOVE_LOOKUP = {"left":-1, "right": 1, "up": 1, "down":-1}
 
 def get_next(current_head, next_move):
@@ -301,6 +303,7 @@ def can_squeeze(body, space):
 
 def get_smart_moves(possible_moves, body, board, my_snake):
     # the main function of the snake - choose the best move based on the information available
+    begin_time = time.perf_counter()
     smart_moves = []
     food_avoid = []
     avoid_moves = []
@@ -349,6 +352,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
             enemy_offset[snake['id']] += 2
 
 
+    snake_calc_time = time.perf_counter()
     # explore each possible n times where n is our length
     for guess in safe_moves:
         safe_coords[guess] = []
@@ -371,7 +375,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                 squeeze_offset[guess] += 1
             if len(explore_edge) == 0 and guess not in dead_ends:
                 dead_ends[guess] = explore_step
-            #print(f"Step {explore_step} exploring {explore_edge}")
+            print(f"Step {explore_step} exploring {explore_edge}")
             for explore in explore_edge:
                 if explore in board['food']:
                     eating_offset += 1
@@ -433,6 +437,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
 
         safe_coords[guess] += list(map(dict, frozenset(frozenset(i.items()) for i in all_coords)))
 
+    explore_time = time.perf_counter()
     for path in safe_coords.keys():
         guess_coord = get_next(body[0], path)
         print(f'considering {path}, {len(safe_coords[path])} safe coords, {len(body)} body length, consumption {avoid_consumption(guess_coord, board["snakes"], my_snake)} hazards {avoid_hazards(guess_coord, board["hazards"])}')
@@ -680,6 +685,8 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     if board['food']:
         food_targets = [food for food in board['food'] if food not in board['hazards']]
 
+
+    decide_time = time.perf_counter()
     # Seek food if there are other snakes porentially larger than us, or if health is low
     if (len(smart_moves) > 1 or my_snake['head'] in board['hazards']) and board['food'] and not eating_snakes and (my_snake["health"] < hunger_threshold or any(snake["length"] + (len(food_targets) / 2) >= my_snake["length"] for snake in enemy_snakes)):
         print("Hungry!")
@@ -786,7 +793,8 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         if len(smart_moves) > 1 and board["food"]:
             food_avoid = [move for move in smart_moves if get_next(body[0], move) not in board["food"]]
             print(f'Not hungry, avoiding food! moves are {food_avoid}')
-
+    
+    hunger_time = time.perf_counter()
     # tiebreakers when there are multiple paths.  should_choose function determines when to do thisi based on board state.  Skip if begin of game and we're short
     # TODO: add alternate branch if we're beside food and that food would make us larger than nearest threat
     # TODO: Refactor this into a better branch similar to the attack code above
@@ -837,6 +845,7 @@ def get_smart_moves(possible_moves, body, board, my_snake):
                         smart_moves = [move for move in smart_moves if body_weight[move] == min(body_weight.values())]
                         print(f'choosing {smart_moves} to avoid bodies {body_weight}')
 
+    tiebreaker_time = time.perf_counter() 
     if board["hazards"] and my_snake["head"] in board["hazards"]:
         # Choose the path that takes us out of hazard
         if not smart_moves:
@@ -860,6 +869,12 @@ def get_smart_moves(possible_moves, body, board, my_snake):
     elif food_avoid:
         smart_moves = food_avoid
 
+    if len(smart_moves) > 1 and choke_moves:
+        temp_moves = [move for move in smart_moves if move not in choke_moves.keys()]
+        if temp_moves:
+            print(f'moving {temp_moves} to avoid choke {choke_moves}')
+            smart_moves = temp_moves
+
     # Final arbitration - chase tail normally, move to center in tron mode
     if len(smart_moves) > 1:
         from_coord = my_snake['head']
@@ -882,5 +897,10 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         if test_moves:
             smart_moves = test_moves
 
+    print(f"Timing: snake_calc_time:{snake_calc_time - begin_time}")
+    print(f"Timing:    explore_time:{explore_time - snake_calc_time}")
+    print(f"Timing:     decide_time:{decide_time - explore_time}")
+    print(f"Timing:     hunger_time:{hunger_time - decide_time}")
+    print(f"Timing: tiebreaker_time:{tiebreaker_time - hunger_time}")
     return smart_moves
 
