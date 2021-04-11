@@ -644,8 +644,9 @@ def get_smart_moves(possible_moves, body, board, my_snake):
             gutter_food += [food for food in board['food'] if (food['x'] == my_snake['head']['x'] or food['y'] == my_snake['head']['y']) and get_moves_toward(my_snake['head'], food)[0] in  safe_coords.keys()]
 
     # Avoid the gutter when we're longer than the board width
-    #print(f"gutter_food {gutter_food} gutter_snakes {gutter_snakes}")
-    if smart_moves and not gutter_snakes and not gutter_food and my_snake["length"] >= 4 and my_snake["length"] <= 2 * board["width"] + 2:
+    print(f"gutter_food {gutter_food} gutter_snakes {gutter_snakes}")
+    if smart_moves and not gutter_snakes and not gutter_food and my_snake["length"] >= 4:
+        # and my_snake["length"] <= 3 * board["width"] + 2
         gutter_avoid = [move for move in smart_moves if not at_wall(get_next(body[0], move), board)]
         if gutter_avoid:
             print(f"Avoiding gutter by going {gutter_avoid} instead of {smart_moves}")
@@ -870,7 +871,8 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         smart_moves = food_avoid
 
     if len(smart_moves) > 1 and choke_moves:
-        temp_moves = [move for move in smart_moves if move not in choke_moves.keys()]
+        temp_chokes = [move for move in choke_moves.keys() if choke_moves[move] < my_snake['length'] / 2]
+        temp_moves = [move for move in smart_moves if move not in temp_chokes]
         if temp_moves:
             print(f'moving {temp_moves} to avoid choke {choke_moves}')
             smart_moves = temp_moves
