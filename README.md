@@ -1,4 +1,4 @@
-# A Simple [Battlesnake](http://play.battlesnake.com) Written in Python
+# A Simple [Battlesnake](http://play.battlesnake.com) Written in Python for Mini Tournament
 
 This is an implementation of the [Battlesnake API](https://docs.battlesnake.com/references/api). 
 
