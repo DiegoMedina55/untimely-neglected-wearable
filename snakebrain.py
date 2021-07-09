@@ -899,10 +899,5 @@ def get_smart_moves(possible_moves, body, board, my_snake):
         if test_moves:
             smart_moves = test_moves
 
-    print(f"Timing: snake_calc_time:{snake_calc_time - begin_time}")
-    print(f"Timing:    explore_time:{explore_time - snake_calc_time}")
-    print(f"Timing:     decide_time:{decide_time - explore_time}")
-    print(f"Timing:     hunger_time:{hunger_time - decide_time}")
-    print(f"Timing: tiebreaker_time:{tiebreaker_time - hunger_time}")
     return smart_moves
 
