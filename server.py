@@ -29,7 +29,7 @@ class Battlesnake(object):
         return {
             "apiversion": "1",
             "author": "altersaddle",  
-            "color": "#306448",  # TODO: create function to generate
+            "color": "#800080",  # TODO: create function to generate
             "head": "tongue",  # TODO: Personalize
             "tail": "sharp",  # TODO: Personalize
         }
